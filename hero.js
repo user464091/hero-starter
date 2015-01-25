@@ -179,8 +179,81 @@ var moves = {
   }
  };
 
-//  Set our heros strategy
-var  move =  moves.aggressor;
+//  The "Opportunist" - makes decision based on health and what's in adjacent tiles
+var  move =  function (gameData, helpers) {
+  var myHero = gameData.activeHero;
+  
+  var whatsAroundMyHero = helpers.getTileTypesInEachDirectionAroundHero(gameData.board, myHero);
+  
+  var directionToMoveIn;
+ 
+  if (whatsAroundMyHero['HealthWell'] && myHero.health < 100) {
+    var aHealthWell = whatsAroundMyHero['HealthWell'].pop();
+    return aHealthWell.direction;
+  }
+  else if (whatsAroundMyHero['EnemyHero']) {
+    // If low health or surrounded by more than one enemy, try and run away
+    if ((myHero.health < 50 || whatsAroundMyHero['EnemyHero'].length > 1) && whatsAroundMyHero['Unoccupied']) {    
+      var anEmptyTile = whatsAroundMyHero['Unoccupied'].pop();
+      return anEmptyTile.direction;
+    }
+    else if (whatsAroundMyHero['EnemyHero'].length === 1) {
+      var anEnemy = whatsAroundMyHero['EnemyHero'].pop();
+      return anEnemy.direction;
+    }
+    else {
+      // Find the weakest enemy and attack them
+      var weakestEnemy = helpers.findWeakestHero(whatsAroundMyHero['EnemyHero']);      
+      return weakestEnemy.direction;
+    }   
+  }
+  else if (whatsAroundMyHero['EnemyDiamondMine'] && myHero.health > 80 ) {    
+    var anEnemyDiamondMine = whatsAroundMyHero['EnemyDiamondMine'].pop();
+    return anEnemyDiamondMine.direction;
+  }
+  else if (whatsAroundMyHero['HeroNeedHealing']) {    
+      // Find the weakest hero and heal them
+      var weakestHero = helpers.findWeakestHero(whatsAroundMyHero['HeroNeedHealing']);      
+      return weakestHero.direction;
+  }
+  else if (whatsAroundMyHero['HeroNeedHealing']) {    
+      // Find the weakest hero and heal them
+      var weakestHero = helpers.findWeakestHero(whatsAroundMyHero['HeroNeedHealing']);      
+      return weakestHero.direction;
+  }
+  else if (whatsAroundMyHero['DeadHero']) {          
+      var deadHero = whatsAroundMyHero['DeadHero'].pop();      
+      return deadHero.direction;
+  }
+  // Nothing interesting around, move towards an ideal tile based on current conditions
+  else {
+    if (myHero.health < 100) {
+      var healthWellStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, myHero, function(boardTile) {
+        if (boardTile.type === 'HealthWell') {
+          return true;
+        }
+      });
+      
+      if (healthWellStats && healthWellStats.direction) {
+        return healthWellStats.direction
+      }      
+    }
+    
+    var enemyToAttack = helpers.findNearestWeakerEnemy(gameData) && helpers.findNearestEnemy(gameData);
+    
+    if (enemyToAttack) {
+      return enemyToAttack;
+    }
+    
+    var diamondMine = helpers.findNearestNonTeamDiamondMine(gameData);
+    
+    if (diamondMine) {
+      return diamondMine;
+    }
+    
+    return 'Stay';
+  }
+};
 
 // Export the move function here
 module.exports = move;

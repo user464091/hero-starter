@@ -34,6 +34,65 @@ helpers.getTileNearby = function(board, distanceFromTop, distanceFromLeft, direc
   }
 };
 
+helpers.findWeakestHero = function (heroes) {
+  var weakestHero = heroes.pop();
+  
+  for (var i in heroes) {
+    var aHero = heroes[i];
+    if (aHero.tileObj.health < weakestHero.tileObj.health) {
+      weakestHero = aHero;
+    }
+  }
+  
+  return weakestHero;  
+};
+
+helpers.getTileTypesInEachDirectionAroundHero = function (board, hero) {
+  // Variable assignments for hero's coordinates
+  var dft = hero.distanceFromTop,
+      dfl = hero.distanceFromLeft,  
+      tileTypeToAdjacentTiles = {},
+      tilesAroundHero = {
+        North : helpers.getTileNearby(board, dft, dfl, 'North'),
+        East : helpers.getTileNearby(board, dft, dfl, 'East'),
+        South : helpers.getTileNearby(board, dft, dfl, 'South'),
+        West : helpers.getTileNearby(board, dft, dfl, 'West')
+      },
+      direction,
+      currentTile,
+      tileType;  
+  
+  for (direction in tilesAroundHero) {
+    currentTile = tilesAroundHero[direction];
+
+    // false can be returned if you can't move in that direction
+    if (currentTile) {
+      tileType = currentTile.type;
+      
+      if (tileType === 'Hero' && currentTile.team !== hero.team && !currentTile.dead) {
+        tileType = 'EnemyHero';      
+      }
+      else if (tileType === 'Hero' && currentTile.team === hero.team && currentTile.health < 100 && !currentTile.dead) {
+        tileType = 'HeroNeedHealing';
+      }
+      else if (tileType === 'Hero' && currentTile.dead) {
+        tileType = 'DeadHero';
+      }
+      else if (tileType === 'DiamondMine' && (!currentTile.owner || currentTile.owner.team !== hero.team)) {
+        tileType = 'EnemyDiamondMine';
+      }
+      
+      if (!tileTypeToAdjacentTiles[tileType]) {
+        tileTypeToAdjacentTiles[tileType] = [];
+      }
+      
+      tileTypeToAdjacentTiles[tileType].push({ direction: direction, tileObj : currentTile});
+    }    
+  }
+  
+  return tileTypeToAdjacentTiles;
+}
+
 // Returns an object with certain properties of the nearest object we are looking for
 helpers.findNearestObjectDirectionAndDistance = function(board, fromTile, tileCallback) {
   // Storage queue to keep track of places the fromTile has been
