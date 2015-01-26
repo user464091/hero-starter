@@ -186,10 +186,22 @@ var  move =  function (gameData, helpers) {
   var whatsAroundMyHero = helpers.getTileTypesInEachDirectionAroundHero(gameData.board, myHero);
   
   var directionToMoveIn;
- 
-  if (whatsAroundMyHero['HealthWell'] && myHero.health < 100) {
-    var aHealthWell = whatsAroundMyHero['HealthWell'].pop();
-    return aHealthWell.direction;
+   
+  if ((whatsAroundMyHero['HealthWell'] && myHero.health < 100) || myHero.health < 60) {
+    if (whatsAroundMyHero['HealthWell']) {
+      var aHealthWell = whatsAroundMyHero['HealthWell'].pop();
+      return aHealthWell.direction;
+    }
+    
+    var healthWellStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, myHero, function(boardTile) {
+      if (boardTile.type === 'HealthWell') {
+        return true;
+      }
+    });
+    
+    if (healthWellStats && healthWellStats.direction) {
+      return healthWellStats.direction
+    }  
   }
   else if (whatsAroundMyHero['EnemyHero']) {
     // If low health or surrounded by more than one enemy, try and run away
@@ -226,19 +238,7 @@ var  move =  function (gameData, helpers) {
       return deadHero.direction;
   }
   // Nothing interesting around, move towards an ideal tile based on current conditions
-  else {
-    if (myHero.health < 100) {
-      var healthWellStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, myHero, function(boardTile) {
-        if (boardTile.type === 'HealthWell') {
-          return true;
-        }
-      });
-      
-      if (healthWellStats && healthWellStats.direction) {
-        return healthWellStats.direction
-      }      
-    }
-    
+  else {    
     var enemyToAttack = helpers.findNearestWeakerEnemy(gameData) && helpers.findNearestEnemy(gameData);
     
     if (enemyToAttack) {
@@ -250,9 +250,9 @@ var  move =  function (gameData, helpers) {
     if (diamondMine) {
       return diamondMine;
     }
-    
-    return 'Stay';
   }
+      
+  return 'Stay';
 };
 
 // Export the move function here
