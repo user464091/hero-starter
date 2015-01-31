@@ -183,75 +183,61 @@ var moves = {
 var  move =  function (gameData, helpers) {
   var myHero = gameData.activeHero;
   
-  var whatsAroundMyHero = helpers.getTileTypesInEachDirectionAroundHero(gameData.board, myHero);
-  
+  var whatsAroundMyHero = helpers.getTileTypesInEachDirectionAroundTile(gameData.board, myHero, myHero, 2);
+  console.log(whatsAroundMyHero);
   var directionToMoveIn;
-   
-  if ((whatsAroundMyHero['HealthWell'] && myHero.health < 100) || myHero.health < 60) {
-    if (whatsAroundMyHero['HealthWell']) {
-      var aHealthWell = whatsAroundMyHero['HealthWell'].pop();
-      return aHealthWell.direction;
-    }
+  
+  // First see what's around hero...
     
+  if (myHero.health > 60) {
+    if (directionToMoveIn = helpers.directionEnemyWorthAttacking(whatsAroundMyHero['EnemyHero'])) {
+      return directionToMoveIn;
+    }
+    else if (!whatsAroundMyHero['EnemyHero'] && whatsAroundMyHero['EnemyDiamondMine']) {          
+      return whatsAroundMyHero['EnemyDiamondMine'].pop().direction;
+    }
+  }
+  
+  if ((whatsAroundMyHero['HealthWell'] && myHero.health < 100)) {
+    console.log(myHero);
+    return whatsAroundMyHero['HealthWell'].pop().direction;
+  }
+  
+  if (!whatsAroundMyHero['EnemyHero']) {
+    if (directionToMoveIn = helpers.directionTileWithoutEnemiesAroundIt(whatsAroundMyHero['HeroNeedHealing'])) {      
+        return directionToMoveIn;
+    }
+    else if (directionToMoveIn = helpers.directionTileWithoutEnemiesAroundIt(whatsAroundMyHero['DeadHero'])) {               
+        return directionToMoveIn;
+    }    
+  }
+  
+  // Nothing good/safe around, move towards something...
+  
+  if (myHero.health < 50) {
     var healthWellStats = helpers.findNearestObjectDirectionAndDistance(gameData.board, myHero, function(boardTile) {
       if (boardTile.type === 'HealthWell') {
         return true;
       }
     });
-    
+    console.log(myHero);
     if (healthWellStats && healthWellStats.direction) {
       return healthWellStats.direction
     }  
   }
-  else if (whatsAroundMyHero['EnemyHero']) {
-    // If low health or surrounded by more than one enemy, try and run away
-    if ((myHero.health < 50 || whatsAroundMyHero['EnemyHero'].length > 1) && whatsAroundMyHero['Unoccupied']) {    
-      var anEmptyTile = whatsAroundMyHero['Unoccupied'].pop();
-      return anEmptyTile.direction;
-    }
-    else if (whatsAroundMyHero['EnemyHero'].length === 1) {
-      var anEnemy = whatsAroundMyHero['EnemyHero'].pop();
-      return anEnemy.direction;
-    }
-    else {
-      // Find the weakest enemy and attack them
-      var weakestEnemy = helpers.findWeakestHero(whatsAroundMyHero['EnemyHero']);      
-      return weakestEnemy.direction;
-    }   
+  
+  var enemyToAttack = helpers.findNearestWeakerEnemy(gameData) || helpers.findNearestEnemy(gameData);
+    console.log(myHero, enemyToAttack);
+  if (enemyToAttack) {
+    return enemyToAttack;
   }
-  else if (whatsAroundMyHero['EnemyDiamondMine'] && myHero.health > 80 ) {    
-    var anEnemyDiamondMine = whatsAroundMyHero['EnemyDiamondMine'].pop();
-    return anEnemyDiamondMine.direction;
-  }
-  else if (whatsAroundMyHero['HeroNeedHealing']) {    
-      // Find the weakest hero and heal them
-      var weakestHero = helpers.findWeakestHero(whatsAroundMyHero['HeroNeedHealing']);      
-      return weakestHero.direction;
-  }
-  else if (whatsAroundMyHero['HeroNeedHealing']) {    
-      // Find the weakest hero and heal them
-      var weakestHero = helpers.findWeakestHero(whatsAroundMyHero['HeroNeedHealing']);      
-      return weakestHero.direction;
-  }
-  else if (whatsAroundMyHero['DeadHero']) {          
-      var deadHero = whatsAroundMyHero['DeadHero'].pop();      
-      return deadHero.direction;
-  }
-  // Nothing interesting around, move towards an ideal tile based on current conditions
-  else {    
-    var enemyToAttack = helpers.findNearestWeakerEnemy(gameData) && helpers.findNearestEnemy(gameData);
     
-    if (enemyToAttack) {
-      return enemyToAttack;
-    }
-    
-    var diamondMine = helpers.findNearestNonTeamDiamondMine(gameData);
-    
-    if (diamondMine) {
-      return diamondMine;
-    }
-  }
-      
+  var diamondMine = helpers.findNearestNonTeamDiamondMine(gameData);
+  console.log(myHero, diamondMine);
+  if (diamondMine) {
+    return diamondMine;
+  }  
+  
   return 'Stay';
 };
 

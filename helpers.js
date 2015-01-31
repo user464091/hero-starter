@@ -47,12 +47,42 @@ helpers.findWeakestHero = function (heroes) {
   return weakestHero;  
 };
 
-helpers.getTileTypesInEachDirectionAroundHero = function (board, hero) {
+helpers.directionEnemyWorthAttacking = function (enemies) {
+  var directionToEnemy;
+  
+  for (var i in enemies) {
+    var enemy = enemies[i];
+    
+    if (!enemy.tilesAroundTile['Hero'] && !enemy.tilesAroundTile['HeroNeedHealing'] && !enemy.tilesAroundTile['HealthWell']) {
+      directionToEnemy = enemy.direction;
+      break;
+    }
+  }    
+  
+  return directionToEnemy;
+};
+
+helpers.directionTileWithoutEnemiesAroundIt = function (tiles) {
+  var direction;
+  
+  for (var i in tiles) {
+    var tile = tiles[i];
+    
+    if (!tile.tilesAroundTile['EnemyHero']) {
+      direction = tile.direction;
+      break;
+    }
+  }    
+  
+  return direction;
+};
+
+helpers.getTileTypesInEachDirectionAroundTile = function (board, tile, hero, tileDepth) {
   // Variable assignments for hero's coordinates
-  var dft = hero.distanceFromTop,
-      dfl = hero.distanceFromLeft,  
+  var dft = tile.distanceFromTop,
+      dfl = tile.distanceFromLeft,  
       tileTypeToAdjacentTiles = {},
-      tilesAroundHero = {
+      tilesAroundTile = {
         North : helpers.getTileNearby(board, dft, dfl, 'North'),
         East : helpers.getTileNearby(board, dft, dfl, 'East'),
         South : helpers.getTileNearby(board, dft, dfl, 'South'),
@@ -62,8 +92,8 @@ helpers.getTileTypesInEachDirectionAroundHero = function (board, hero) {
       currentTile,
       tileType;  
   
-  for (direction in tilesAroundHero) {
-    currentTile = tilesAroundHero[direction];
+  for (direction in tilesAroundTile) {
+    currentTile = tilesAroundTile[direction];
 
     // false can be returned if you can't move in that direction
     if (currentTile) {
@@ -75,7 +105,7 @@ helpers.getTileTypesInEachDirectionAroundHero = function (board, hero) {
       else if (tileType === 'Hero' && currentTile.team === hero.team && currentTile.health < 100 && !currentTile.dead) {
         tileType = 'HeroNeedHealing';
       }
-      else if (tileType === 'Hero' && currentTile.dead) {
+      else if (tileType === 'Unoccupied' && currentTile.subType === 'Bones') {
         tileType = 'DeadHero';
       }
       else if (tileType === 'DiamondMine' && (!currentTile.owner || currentTile.owner.team !== hero.team)) {
@@ -86,7 +116,11 @@ helpers.getTileTypesInEachDirectionAroundHero = function (board, hero) {
         tileTypeToAdjacentTiles[tileType] = [];
       }
       
-      tileTypeToAdjacentTiles[tileType].push({ direction: direction, tileObj : currentTile});
+      tileTypeToAdjacentTiles[tileType].push({
+        direction: direction,
+        tileObj : currentTile,
+        tilesAroundTile : (tileDepth > 1) ? helpers.getTileTypesInEachDirectionAroundTile(board, currentTile, hero, tileDepth - 1) : null
+      });
     }    
   }
   
